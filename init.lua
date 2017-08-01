@@ -5,7 +5,7 @@
 
 minetest.register_privilege("jail", { description = "Allows one to send/release prisoners" })
 
-local jailpos = { x = -517, y = 36, z = 169 }
+local jailpos = { x = -20, y = 48, z = -67 }
 local players_in_jail = {};
 local datapath = minetest.get_worldpath() .. "/"
 
@@ -25,7 +25,7 @@ local function loadJailData (path)
 	return jData
 end
 
-jData = loadJailData (datapath)
+local jData = loadJailData (datapath)
 if jData then
 	players_in_jail = jData
 end
@@ -70,9 +70,13 @@ minetest.register_chatcommand("release", {
 
 minetest.register_on_respawnplayer(function(player) return true end)
 
+local playerInst
 local function do_teleport ( )
     for name, player in pairs(players_in_jail) do
-            minetest.env:get_player_by_name(player.name):setpos(jailpos)
+            playerInst = minetest.env:get_player_by_name(player.name)
+            if playerInst then
+				playerInst:setpos(jailpos)
+            end
     end
     minetest.after(30, do_teleport)
 end
