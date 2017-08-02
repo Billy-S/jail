@@ -11,11 +11,7 @@ To release someone from jail do:
 To grant someone the priv to send someone to jail and release them do:
 /grant playername jail
 
-To get jail wall, glass, bars or pick:
-/giveme wardenpick
-/giveme jail:jailwall
-/giveme jail:glass
-/giveme jail:ironbars
+To get jail barbed wire, use /giveme jail:barbedwire, or get it from the creative inventory.
 
 You MUST build a jail before you can send someone to jail! (this shouldn't have to be mentioned but mentioning it anyway).
 
