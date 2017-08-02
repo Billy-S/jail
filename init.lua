@@ -5,7 +5,8 @@
 
 minetest.register_privilege("jail", { description = "Allows one to send/release prisoners" })
 
-local jailpos = { x = -20, y = 48, z = -67 }
+jailpos = { x = -20, y = 48, z = -67 }
+releasepos = { x = -512, y = 36, z = 169 }
 local players_in_jail = {};
 local datapath = minetest.get_worldpath() .. "/"
 
@@ -25,6 +26,30 @@ local function loadJailData (path)
 	return jData
 end
 
+local function jailPlayer (pName, by)
+	local player = minetest.env:get_player_by_name(pName)
+	if player then
+		players_in_jail[pName] = {name = pName, privs = minetest.get_player_privs(pName)};
+		minetest.set_player_privs(pName, {shout = true})
+		player:setpos(jailpos)
+		minetest.chat_send_player(pName, "You have been sent to jail")
+		minetest.chat_send_all(""..pName.." has been sent to jail by "..by.."")
+		saveJailData (datapath)
+	end
+end
+
+local function releasePlayer (pName, by)
+	local player = minetest.env:get_player_by_name(pName)
+	if (player and players_in_jail[pName]) then
+		minetest.set_player_privs(pName, players_in_jail[pName].privs)
+		players_in_jail[pName] = nil;
+		player:setpos(releasepos)
+		minetest.chat_send_player(pName, "You have been released from jail")
+		minetest.chat_send_all(""..pName.." has been released from jail by "..by.."")
+		saveJailData (datapath)
+	end
+end
+
 local jData = loadJailData (datapath)
 if jData then
 	players_in_jail = jData
@@ -35,20 +60,30 @@ minetest.register_chatcommand("jail", {
     description = "Sends a player to Jail",
 	privs = {jail=true},
     func = function ( name, param )
-        local player = minetest.env:get_player_by_name(param)
-        if (player) then
-            players_in_jail[param] = {name = param, privs = minetest.get_player_privs(param)};
-            minetest.set_player_privs(param, {shout = true})
-            player:setpos(jailpos)
-			minetest.chat_send_player(param, "You have been sent to jail")
-			minetest.chat_send_all(""..param.." has been sent to jail by "..name.."")
-			saveJailData (datapath)
-        end
+        jailPlayer (param, name)
     end,
 })
 
-
-local releasepos = { x = -512, y = 36, z = 169 }
+minetest.register_chatcommand("tempjail", {
+	params = "<player> <time>",
+	description = "Sends a player in jail for a certain amount of time (in minutes)",
+	privs = {jail = true},
+	func = function (name, param)
+		pName = param:gsub("%s.+", "")
+		jailTime = param:gsub(".+%s", "")
+		if (pName == param or jailTime == param) then return end
+		jailTime = tonumber(jailTime)
+		if jailTime then
+			jailPlayer (pName, name)
+			minetest.after(jailTime * 60, function (params)
+											local pName = params[1]
+											local by = params[2]
+											releasePlayer (pName, by)
+										  end,
+			 {pName, name})
+		end
+	end
+})
  
 minetest.register_chatcommand("release", {
     params = "<player>",
@@ -56,17 +91,19 @@ minetest.register_chatcommand("release", {
 	privs = {jail=true},
     func = function ( name, param )
         if (param == "") then return end
-        local player = minetest.env:get_player_by_name(param)
-        if (player) then
-			minetest.set_player_privs(param, players_in_jail[param].privs)
-			players_in_jail[param] = nil;
-            player:setpos(releasepos)
-			minetest.chat_send_player(param, "You have been released from jail")
-			minetest.chat_send_all(""..param.." has been released from jail by "..name.."")
-			saveJailData (datapath)
-        end
+        releasePlayer (param, name)
     end,
 })
+
+minetest.register_on_chat_message(function(name, msg)
+	for i, _ in pairs(players_in_jail) do
+		if name == i then
+			minetest.chat_send_all("<" .. name .. "@jail> " .. msg)
+			return true
+		end
+	end
+end
+)
 
 minetest.register_on_respawnplayer(function(player) return true end)
 
@@ -82,57 +119,11 @@ local function do_teleport ( )
 end
 minetest.after(30, do_teleport)
 
-minetest.register_alias("wardenpick", "jail:pick_warden")
-
-minetest.register_node("jail:jailwall", {
-	description = "Unbreakable Jail Wall",
-	tile_images = {"jail_wall.png"},
-	is_ground_content = true,
-	groups = {unbreakable=1, not_in_creative_inventory=1}
---	sounds = default.node_sound_stone_defaults(),
-})
-
-minetest.register_node("jail:glass", {
-	description = "Unbreakable Jail Glass",
+minetest.register_node("jail:barbed_wire", {
+	description = "Barbed Wire",
 	drawtype = "glasslike",
-	tile_images = {"jail_glass.png"},
-	paramtype = "light",
+	tile_images = {"jail_barbed_wire.png"},
 	sunlight_propagates = true,
-	is_ground_content = true,
-	groups = {unbreakable=1, not_in_creative_inventory=1},
---	sounds = default.node_sound_glass_defaults(),
-})
-
-minetest.register_node("jail:ironbars", {
-	drawtype = "fencelike",
-	tiles = {"jail_ironbars.png"},
-	inventory_image = "jail_ironbars_icon.png",
-	light_propagates = true,
-	paramtype = "light",
-	is_ground_content = true,
-	selection_box = {
-		type = "fixed",
-		fixed = {-1/7, -1/2, -1/7, 1/7, 1/2, 1/7},
-	},
-	groups = {unbreakable=1, not_in_creative_inventory=1},
+	groups = {snappy = 2}
 --	sounds = default.node_sound_stone_defaults(),
-})
-
-minetest.register_tool("jail:pick_warden", {
-	description = "Warden Pickaxe",
-	inventory_image = "jail_wardenpick.png",
-	groups = {not_in_creative_inventory=1},
-	tool_capabilities = {
-		full_punch_interval = 0,
-		max_drop_level=3,
-		groupcaps={
-			unbreakable={times={[1]=0, [2]=0, [3]=0}, uses=0, maxlevel=3},
-			fleshy = {times={[1]=0, [2]=0, [3]=0}, uses=0, maxlevel=3},
-			choppy={times={[1]=0, [2]=0, [3]=0}, uses=0, maxlevel=3},
-			bendy={times={[1]=0, [2]=0, [3]=0}, uses=0, maxlevel=3},
-			cracky={times={[1]=0, [2]=0, [3]=0}, uses=0, maxlevel=3},
-			crumbly={times={[1]=0, [2]=0, [3]=0}, uses=0, maxlevel=3},
-			snappy={times={[1]=0, [2]=0, [3]=0}, uses=0, maxlevel=3},
-		}
-	},
 })
