@@ -28,7 +28,7 @@ end
 
 local function jailPlayer (pName, by)
 	local player = minetest.env:get_player_by_name(pName)
-	if player then
+	if (player and not players_in_jail[pName] and not minetest.get_player_privs(pName).jail) then
 		players_in_jail[pName] = {name = pName, privs = minetest.get_player_privs(pName)};
 		minetest.set_player_privs(pName, {shout = true})
 		player:setpos(jailpos)
