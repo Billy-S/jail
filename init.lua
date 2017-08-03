@@ -4,10 +4,12 @@
 -- license: whatever
 
 minetest.register_privilege("jail", { description = "Allows one to send/release prisoners" })
+minetest.register_privilege("freeze", { description = "Allows one to freeze/defrost players" })
 
 jailpos = { x = -20, y = 48, z = -67 }
 releasepos = { x = -512, y = 36, z = 169 }
-local players_in_jail = {};
+local players_in_jail = {}
+local frozen_players = {}
 local datapath = minetest.get_worldpath() .. "/"
 
 local function saveJailData (path)
@@ -93,6 +95,34 @@ minetest.register_chatcommand("release", {
         if (param == "") then return end
         releasePlayer (param, name)
     end,
+})
+
+minetest.register_chatcommand("freeze", {
+	params = "<player>",
+	description = "Immobilizes a player",
+	privs = {freeze=true},
+	func = function (name, param)
+		local player = minetest.env:get_player_by_name(param)
+		if player and not frozen_players[param] then
+			player:set_physics_override({speed = 0, jump = 0, gravity = 1.0, sneak = false, sneak_glitch = false})
+			minetest.chat_send_player(param, "You have been frozen!")
+			frozen_players[param] = true
+		end
+	end,	
+})
+
+minetest.register_chatcommand("defrost", {
+	params = "<player>",
+	description = "Remobilizes a player",
+	privs = {freeze=true},
+	func = function (name, param)
+		local player = minetest.env:get_player_by_name(param)
+		if player and frozen_players[param] then
+			player:set_physics_override({speed = 1.0, jump = 1.0, gravity = 1.0, sneak = true, sneak_glitch = false})
+			minetest.chat_send_player(param, "You have been defrosted!")
+			frozen_players[param] = nil
+		end
+	end,	
 })
 
 minetest.register_on_chat_message(function(name, msg)
