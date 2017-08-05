@@ -28,7 +28,7 @@ local function loadJailData (path)
 	return jData
 end
 
-local function jailPlayer (pName, by)
+function jailPlayer (pName, by)
 	local player = minetest.env:get_player_by_name(pName)
 	if (player and not players_in_jail[pName] and not minetest.get_player_privs(pName).jail) then
 		players_in_jail[pName] = {name = pName, privs = minetest.get_player_privs(pName)};
@@ -40,7 +40,7 @@ local function jailPlayer (pName, by)
 	end
 end
 
-local function releasePlayer (pName, by)
+function releasePlayer (pName, by)
 	local player = minetest.env:get_player_by_name(pName)
 	if (player and players_in_jail[pName]) then
 		minetest.set_player_privs(pName, players_in_jail[pName].privs)
@@ -49,6 +49,24 @@ local function releasePlayer (pName, by)
 		minetest.chat_send_player(pName, "You have been released from jail")
 		minetest.chat_send_all(""..pName.." has been released from jail by "..by.."")
 		saveJailData (datapath)
+	end
+end
+
+function freezePlayer (pName)
+	local player = minetest.env:get_player_by_name(pName)
+	if player and not frozen_players[param] then
+		player:set_physics_override({speed = 0, jump = 0, gravity = 1.0, sneak = false, sneak_glitch = false})
+		minetest.chat_send_player(pName, "You have been frozen!")
+		frozen_players[pName] = true
+	end
+end
+
+function defrostPlayer (pName)
+	local player = minetest.env:get_player_by_name(pName)
+	if player and frozen_players[pName] then
+		player:set_physics_override({speed = 1.0, jump = 1.0, gravity = 1.0, sneak = true, sneak_glitch = false})
+		minetest.chat_send_player(pName, "You have been defrosted!")
+		frozen_players[param] = nil
 	end
 end
 
@@ -102,12 +120,7 @@ minetest.register_chatcommand("freeze", {
 	description = "Immobilizes a player",
 	privs = {freeze=true},
 	func = function (name, param)
-		local player = minetest.env:get_player_by_name(param)
-		if player and not frozen_players[param] then
-			player:set_physics_override({speed = 0, jump = 0, gravity = 1.0, sneak = false, sneak_glitch = false})
-			minetest.chat_send_player(param, "You have been frozen!")
-			frozen_players[param] = true
-		end
+		freezePlayer(param)
 	end,	
 })
 
@@ -116,12 +129,7 @@ minetest.register_chatcommand("defrost", {
 	description = "Remobilizes a player",
 	privs = {freeze=true},
 	func = function (name, param)
-		local player = minetest.env:get_player_by_name(param)
-		if player and frozen_players[param] then
-			player:set_physics_override({speed = 1.0, jump = 1.0, gravity = 1.0, sneak = true, sneak_glitch = false})
-			minetest.chat_send_player(param, "You have been defrosted!")
-			frozen_players[param] = nil
-		end
+		defrostPlayer(param)
 	end,	
 })
 
@@ -135,7 +143,12 @@ minetest.register_on_chat_message(function(name, msg)
 end
 )
 
-minetest.register_on_respawnplayer(function(player) return true end)
+minetest.on_joinplayer(function(player)
+	local name = player:get_player_name()
+	if frozen_players[name] then
+		player:set_physics_override({speed = 0, jump = 0, gravity = 1.0, sneak = false, sneak_glitch = false})
+	end
+end)
 
 local playerInst
 local function do_teleport ( )
