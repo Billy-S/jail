@@ -8,8 +8,8 @@ minetest.register_privilege("freeze", { description = "Allows one to freeze/defr
 
 jailpos = { x = -20, y = 48, z = -67 }
 releasepos = { x = -512, y = 36, z = 169 }
-local players_in_jail = {}
-local frozen_players = {}
+players_in_jail = {}
+frozen_players = {}
 local datapath = minetest.get_worldpath() .. "/"
 
 local function saveJailData (path)
@@ -37,6 +37,7 @@ function jailPlayer (pName, by)
 		minetest.chat_send_player(pName, "You have been sent to jail")
 		minetest.chat_send_all(""..pName.." has been sent to jail by "..by.."")
 		saveJailData (datapath)
+		return true
 	end
 end
 
@@ -49,6 +50,7 @@ function releasePlayer (pName, by)
 		minetest.chat_send_player(pName, "You have been released from jail")
 		minetest.chat_send_all(""..pName.." has been released from jail by "..by.."")
 		saveJailData (datapath)
+		return true
 	end
 end
 
@@ -58,6 +60,7 @@ function freezePlayer (pName)
 		player:set_physics_override({speed = 0, jump = 0, gravity = 1.0, sneak = false, sneak_glitch = false})
 		minetest.chat_send_player(pName, "You have been frozen!")
 		frozen_players[pName] = true
+		return true
 	end
 end
 
@@ -67,6 +70,7 @@ function defrostPlayer (pName)
 		player:set_physics_override({speed = 1.0, jump = 1.0, gravity = 1.0, sneak = true, sneak_glitch = false})
 		minetest.chat_send_player(pName, "You have been defrosted!")
 		frozen_players[pName] = false
+		return true
 	end
 end
 
