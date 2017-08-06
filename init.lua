@@ -54,7 +54,7 @@ end
 
 function freezePlayer (pName)
 	local player = minetest.env:get_player_by_name(pName)
-	if player and not frozen_players[param] then
+	if player and not frozen_players[pName] then
 		player:set_physics_override({speed = 0, jump = 0, gravity = 1.0, sneak = false, sneak_glitch = false})
 		minetest.chat_send_player(pName, "You have been frozen!")
 		frozen_players[pName] = true
@@ -66,7 +66,7 @@ function defrostPlayer (pName)
 	if player and frozen_players[pName] then
 		player:set_physics_override({speed = 1.0, jump = 1.0, gravity = 1.0, sneak = true, sneak_glitch = false})
 		minetest.chat_send_player(pName, "You have been defrosted!")
-		frozen_players[param] = nil
+		frozen_players[pName] = false
 	end
 end
 
@@ -143,7 +143,7 @@ minetest.register_on_chat_message(function(name, msg)
 end
 )
 
-minetest.on_joinplayer(function(player)
+minetest.register_on_joinplayer(function(player)
 	local name = player:get_player_name()
 	if frozen_players[name] then
 		player:set_physics_override({speed = 0, jump = 0, gravity = 1.0, sneak = false, sneak_glitch = false})
