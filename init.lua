@@ -4,23 +4,21 @@
 -- license: whatever
 
 minetest.register_privilege("jail", { description = "Allows one to send/release prisoners" })
-minetest.register_privilege("freeze", { description = "Allows one to freeze/defrost players" })
 
-jailpos = { x = -20, y = 48, z = -67 }
-releasepos = { x = -512, y = 36, z = 169 }
+jailpos = {x = -20, y = 48, z = -67}
+releasepos = {x = -512, y = 36, z = 169}
 players_in_jail = {}
-frozen_players = {}
-local datapath = minetest.get_worldpath() .. "/"
+jaildatapath = minetest.get_worldpath() .. "/"
 
-local function saveJailData (path)
+function saveJailData (path)
 	local file = io.open(path .. "jailData.txt", "w")
 	if not file then return false end
-	file:write(minetest.serialize(players_in_jail))
+	file:write(minetest.serialize({players_in_jail, jailpos, releasepos}))
 	file:close()
 	return true
 end
 
-local function loadJailData (path)
+function loadJailData (path)
 	local file = io.open(path .. "jailData.txt", "r")
 	if not file then return false end
 	jData = minetest.deserialize(file:read("*all"))
@@ -36,47 +34,33 @@ function jailPlayer (pName, by)
 		player:setpos(jailpos)
 		minetest.chat_send_player(pName, "You have been sent to jail")
 		minetest.chat_send_all(""..pName.." has been sent to jail by "..by.."")
-		saveJailData (datapath)
+		saveJailData (jaildatapath)
 		return true
 	end
 end
 
 function releasePlayer (pName, by)
 	local player = minetest.env:get_player_by_name(pName)
-	if (player and players_in_jail[pName]) then
+	if (player and players_in_jail[pName]) git init
 		minetest.set_player_privs(pName, players_in_jail[pName].privs)
 		players_in_jail[pName] = nil;
 		player:setpos(releasepos)
 		minetest.chat_send_player(pName, "You have been released from jail")
 		minetest.chat_send_all(""..pName.." has been released from jail by "..by.."")
-		saveJailData (datapath)
+		saveJailData (jaildatapath)
 		return true
 	end
 end
 
-function freezePlayer (pName)
-	local player = minetest.env:get_player_by_name(pName)
-	if player and not frozen_players[pName] then
-		player:set_physics_override({speed = 0, jump = 0, gravity = 1.0, sneak = false, sneak_glitch = false})
-		minetest.chat_send_player(pName, "You have been frozen!")
-		frozen_players[pName] = true
-		return true
-	end
-end
-
-function defrostPlayer (pName)
-	local player = minetest.env:get_player_by_name(pName)
-	if player and frozen_players[pName] then
-		player:set_physics_override({speed = 1.0, jump = 1.0, gravity = 1.0, sneak = true, sneak_glitch = false})
-		minetest.chat_send_player(pName, "You have been defrosted!")
-		frozen_players[pName] = false
-		return true
-	end
-end
-
-local jData = loadJailData (datapath)
+local jData = loadJailData (jaildatapath)
 if jData then
-	players_in_jail = jData
+	if type(jData[1]) == type({}) then
+		players_in_jail = jData[1]
+		jailpos = jData[2]
+		releasepos = jData[3]
+	else
+		players_in_jail = jData
+	end
 end
 
 minetest.register_chatcommand("jail", {
@@ -117,24 +101,6 @@ minetest.register_chatcommand("release", {
         if (param == "") then return end
         releasePlayer (param, name)
     end,
-})
-
-minetest.register_chatcommand("freeze", {
-	params = "<player>",
-	description = "Immobilizes a player",
-	privs = {freeze=true},
-	func = function (name, param)
-		freezePlayer(param)
-	end,	
-})
-
-minetest.register_chatcommand("defrost", {
-	params = "<player>",
-	description = "Remobilizes a player",
-	privs = {freeze=true},
-	func = function (name, param)
-		defrostPlayer(param)
-	end,	
 })
 
 minetest.register_on_chat_message(function(name, msg)
