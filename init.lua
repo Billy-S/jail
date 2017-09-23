@@ -41,7 +41,7 @@ end
 
 function releasePlayer (pName, by)
 	local player = minetest.env:get_player_by_name(pName)
-	if (player and players_in_jail[pName]) git init
+	if (player and players_in_jail[pName]) then
 		minetest.set_player_privs(pName, players_in_jail[pName].privs)
 		players_in_jail[pName] = nil;
 		player:setpos(releasepos)
