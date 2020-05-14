@@ -113,13 +113,6 @@ minetest.register_on_chat_message(function(name, msg)
 end
 )
 
-minetest.register_on_joinplayer(function(player)
-	local name = player:get_player_name()
-	if frozen_players[name] then
-		player:set_physics_override({speed = 0, jump = 0, gravity = 1.0, sneak = false, sneak_glitch = false})
-	end
-end)
-
 local playerInst
 local function do_teleport ( )
     for name, player in pairs(players_in_jail) do
